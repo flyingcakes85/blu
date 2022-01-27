@@ -1,4 +1,5 @@
 use clap::Parser;
+use updater::update_sources;
 
 mod parse_config;
 mod updater;
@@ -20,5 +21,7 @@ fn main() {
         Err(error) => panic!("{:#?}", error),
     };
 
-    updater::process_sources(&runtime_opts["source"]).unwrap();
+    let (package_list, updates) = updater::process_sources(&runtime_opts["source"]).unwrap();
+
+    update_sources(&runtime_opts["source"], &package_list, &updates).unwrap();
 }
