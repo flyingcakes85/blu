@@ -4,6 +4,16 @@ use std::{fs, vec};
 use toml::Value as TomlValue;
 use walkdir::{DirEntry, WalkDir};
 
+/// Reads updates and returns list of updates with their information
+///
+/// # Arguments
+///
+/// * `source_opts` - A TOML Value from .blu.conf.toml
+///
+/// # Return
+///
+/// A tuple with two elements - list of updates as `Vec<String>` and
+/// update information as `Vec<JsonValue`.
 pub fn process_sources(
     source_opts: &TomlValue,
 ) -> Result<(Vec<String>, Vec<JsonValue>), Box<dyn Error>> {
@@ -24,6 +34,7 @@ pub fn process_sources(
     Ok((package_list, updates.to_vec()))
 }
 
+/// Checks if given DirEntry is a hidden file/folder
 fn is_not_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
@@ -32,6 +43,7 @@ fn is_not_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
+/// Checks if the given DirEntry is a JSON file
 fn is_json(entry: &DirEntry) -> bool {
     entry
         .path()
@@ -40,7 +52,19 @@ fn is_json(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-// get update info for given package name
+/// Gives update information for provided package name
+///
+/// # Arguments
+///
+/// * `updates` - Array of JSON Values with upadate information.
+///   Use updater::process_sources to generate this array.
+///
+/// * `name` - Name of package to get info for
+///
+/// # Return
+///
+/// The specific JSON Value from `updates` if `name` was found.
+/// Error otherwise.
 fn get_update_info(updates: &[JsonValue], name: &str) -> Result<JsonValue, Box<dyn Error>> {
     for update in updates {
         if update["name"].as_str().unwrap() == name {
@@ -54,7 +78,30 @@ fn get_update_info(updates: &[JsonValue], name: &str) -> Result<JsonValue, Box<d
     )))
 }
 
-// get '__exact' identifier
+/// Reads the update source and returns the identifier
+///
+/// Identifier ends with `__exact` and is used as key to find
+/// relevant element from manifest. If identifier is found,
+/// returns it; otherwise error.
+///
+/// # Arguments
+///
+/// * `update_source` - A JSON Value with Map of source. In below
+/// example, `url__exact` is the identifier.
+///
+/// ```json
+/// {
+///   "type": "archive",
+///   "url": "https://example.com/pkg/v2.0.0.tar.xz",
+///   "url__exact": "https://example.com/pkg/v1.9.0.tar.xz",
+///   "sha256": "EXAMPLE SHA256"
+/// }
+/// ```
+///
+/// # Return
+///
+/// The identifier key as a string, if found. Error otherwise.
+/// In example above, "url__exact" is returned.
 fn get_update_identifier(update_source: &JsonValue) -> Result<String, Box<dyn Error>> {
     for v in update_source.as_object().unwrap().keys() {
         if v.ends_with("__exact") {
@@ -95,6 +142,18 @@ fn rewrite_source_attributes(
     Ok(())
 }
 
+/// The main glue of this application.
+///
+/// # Arguments
+///
+/// * `source_opts` - A TOML Value from .blu.conf.toml
+///
+/// * `update_package_list` - Array of strings with package names
+///   that are to be updates. Use updater::process_sources to
+///   generate this array.
+///
+/// * `updates` - Array of JSON Values with upadate information.
+///   Use updater::process_sources to generate this array.
 pub fn update_sources(
     source_opts: &TomlValue,
     update_package_list: &[String],
