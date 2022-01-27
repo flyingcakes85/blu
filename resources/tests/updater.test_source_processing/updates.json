@@ -1,0 +1,23 @@
+{
+  "updates": [
+    {
+      "name": "foo",
+      "sources": [
+        {
+          "url__exact": "https://example.com/foo.git",
+          "tag": "v5.90.2"
+        }
+      ]
+    },
+    {
+      "name": "bar",
+      "sources": [
+        {
+          "url__exact": "https://example.com/bar/v1.2.3.tar.gz",
+          "url": "https://example.com/bar/v1.2.4.tar.gz",
+          "sha256": "SHA256"
+        }
+      ]
+    }
+  ]
+}

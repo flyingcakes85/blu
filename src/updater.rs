@@ -4,6 +4,74 @@ use std::{fs, vec};
 use toml::Value as TomlValue;
 use walkdir::{DirEntry, WalkDir};
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::map::Map as JsonMap;
+    use serde_json::Value::{Array as JsonArray, Object as JsonObject, String as JsonString};
+    use toml::map::Map as TomlMap;
+
+    #[test]
+    fn test_source_processing() {
+        let package_list_expected = vec!["foo".to_string(), "bar".to_string()];
+
+        let updates_expected = vec![
+            JsonObject({
+                let mut package = JsonMap::new();
+                package.insert("name".into(), JsonString("foo".to_string()));
+                package.insert(
+                    "sources".into(),
+                    JsonArray(vec![JsonObject({
+                        let mut sources = JsonMap::new();
+                        sources.insert("tag".into(), JsonString("v5.90.2".to_string()));
+                        sources.insert(
+                            "url__exact".into(),
+                            JsonString("https://example.com/foo.git".to_string()),
+                        );
+                        sources
+                    })]),
+                );
+                package
+            }),
+            JsonObject({
+                let mut package = JsonMap::new();
+                package.insert("name".into(), JsonString("bar".to_string()));
+                package.insert(
+                    "sources".into(),
+                    JsonArray(vec![JsonObject({
+                        let mut sources = JsonMap::new();
+                        sources.insert("sha256".into(), JsonString("SHA256".to_string()));
+                        sources.insert(
+                            "url".into(),
+                            JsonString("https://example.com/bar/v1.2.4.tar.gz".to_string()),
+                        );
+                        sources.insert(
+                            "url__exact".into(),
+                            JsonString("https://example.com/bar/v1.2.3.tar.gz".to_string()),
+                        );
+                        sources
+                    })]),
+                );
+                package
+            }),
+        ];
+
+        let mut config_source = TomlMap::new();
+        config_source.insert(
+            "update_file".into(),
+            toml::Value::String(format!(
+                "{}/resources/tests/updater.test_source_processing/updates.json",
+                std::env!("CARGO_MANIFEST_DIR")
+            )),
+        );
+
+        let (package_list, updates) = process_sources(&toml::Value::Table(config_source)).unwrap();
+
+        assert_eq!(updates, updates_expected);
+        assert_eq!(package_list, package_list_expected);
+    }
+}
+
 /// Reads updates and returns list of updates with their information
 ///
 /// # Arguments
